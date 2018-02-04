@@ -56,6 +56,16 @@ class ALU
              bitset<32> ALUOperation (bitset<3> ALUOP, bitset<32> oprand1, bitset<32> oprand2)
              {   
                  // implement the ALU operations by you. 
+    		if(ALUOP.to_ulong() == ADDU)//addition
+                     ALUresult = oprand1.to_ulong() + oprand2.to_ulong();
+                 else if(ALUOP.to_ulong() == SUBU)//subtraction
+                     ALUresult = oprand1.to_ulong() - oprand2.to_ulong();
+                 else if(ALUOP.to_ulong() == AND)//and
+                     ALUresult = oprand1 & oprand2;
+                 else if (ALUOP.to_ulong() == OR)//or
+                     ALUresult = oprand1|oprand2;
+                 else if (ALUOP.to_ulong() == NOR)//nor
+                     ALUresult = ~(oprand1|oprand2);
                  return ALUresult;
                }            
 };
