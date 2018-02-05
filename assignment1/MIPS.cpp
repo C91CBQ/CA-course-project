@@ -24,13 +24,14 @@ class RF
 
         void ReadWrite(bitset<5> RdReg1, bitset<5> RdReg2, bitset<5> WrtReg, bitset<32> WrtData, bitset<1> WrtEnable)
         {
-            if (WrtEnable.to_ulong()) {
+            if (WrtEnable.to_ulong() == 1) {
                 Registers[WrtReg.to_ulong()] = WrtData;
+                cout << "WrtData: " << WrtData << endl;
             } else {
                 ReadData1 = Registers[RdReg1.to_ulong()];
                 ReadData2 = Registers[RdReg2.to_ulong()];
             }
-            // implement the funciton by you.
+            // implement the function by you.
          }
 
 	void OutputRF()
@@ -46,7 +47,7 @@ class RF
                       }
 
                   }
-                  else cout<<"Unable to open file";
+                  else cout<<"Error from OutputRF: Unable to open file" <<endl <<endl;;
                   rfout.close();
 
                }
@@ -86,16 +87,19 @@ class INSMem
                   string line;
                   int i=0;
                   imem.open("imem.txt");
-                  if (imem.is_open())
-                  {
+                  if (imem.is_open()) {
+
+                      //cout<<"file not open"<<endl <<endl;
                   while (getline(imem,line))
                      {
                         IMem[i] = bitset<8>(line);
+                         cout << "All Imem: " << IMem[i] << endl;
+                         //cout << "line: " << line << endl;
                         i++;
                      }
 
                   }
-                  else cout<<"Unable to open file";
+                  else cout<<"Error from INSMem Constructor:Unable to open file"<<endl <<endl;
                   imem.close();
 
                   }
@@ -104,7 +108,11 @@ class INSMem
               {
                   Instruction=bitset<32>(IMem[ReadAddress.to_ulong()].to_string()+IMem[ReadAddress.to_ulong()+1].to_string()+IMem[ReadAddress.to_ulong()+2].to_string()+IMem[ReadAddress.to_ulong()+3].to_string());
                // implement by you. (Read the byte at the ReadAddress and the following three byte).
-               return Instruction;
+                  //cout << "ReadMemory OK"<< endl;
+                  cout << "Instruction: " << Instruction << endl;
+
+
+                  return Instruction;
               }
 
       private:
@@ -131,7 +139,7 @@ class DataMem
                         i++;
                        }
                   }
-                  else cout<<"Unable to open file";
+                  else cout<<"Error from DataMem Constructor: Unable to open file"<<endl <<endl;
                   dmem.close();
 
           }
@@ -160,7 +168,7 @@ class DataMem
                        }
 
                   }
-                  else cout<<"Unable to open file";
+                  else cout<<"Error from OutputDataMem: Unable to open file"<<endl <<endl;
                   dmemout.close();
 
                }
@@ -172,134 +180,148 @@ class DataMem
 
 
 
-int main()
-{
+int main() {
     RF myRF;
     ALU myALU;
     INSMem myInsMem;
     DataMem myDataMem;
 
-    while (1)
-	{
-        bitset<32> curIns=0xff;
-    	bitset<32> PC=0x0;
+    while (1) {
+        bitset<32> curIns = 0xff;
+        bitset<32> PC = 0x0;
 
-    	//R-type parts
-    	bitset<6> opcode=0x0;
-    	bitset<5> rs=0x0;
-    	bitset<5> rt=0x0;
-    	bitset<5> rd=0x0;
-    	bitset<5> shamt=0x0;
-    	bitset<6> funct=0x0;
+        //R-type parts
+        bitset<6> opcode = 0x0;
+        bitset<5> rs = 0x0;
+        bitset<5> rt = 0x0;
+        bitset<5> rd = 0x0;
+        bitset<5> shamt = 0x0;
+        bitset<6> funct = 0x0;
 
-    	//I-type additional parts
-    	bitset<16> immediate=0x0;
+        //I-type additional parts
+        bitset<16> immediate = 0x0;
 
-    	//J-type additional parts
-    	bitset<26> address=0x0;
+        //J-type additional parts
+        bitset<26> address = 0x0;
 
-        while (1)
-    	{
+        while (1) {
+            bitset<32> immediate_final;
             // Fetch
-            	curIns=myInsMem.ReadMemory(PC);
-            	PC=bitset<32>(PC.to_ulong()+4);
-    		// If current insturciton is "11111111111111111111111111111111", then break;
-            	if(curIns==0xffffffff) break;
-    		// decode(Read RF)
-    			opcode=bitset<6>(curIns.to_string().substr(26,6));
-    			switch(opcode){
-    				case 0x00:
-    					//R-type
-    					rs=bitset<5> curIns.to_string().substr(21,5);
-    					rt=bitset<5> curIns.to_string().substr(16,5);
-    					rd=bitset<5> curIns.to_string().substr(11,5);
-    					shamt=bitset<5> curIns.to_string().substr(6,5);
-    					funct=bitset<6> curIns.to_string().substr(0,6);
+            curIns = myInsMem.ReadMemory(PC);
+            PC = bitset<32>(PC.to_ulong() + 4);
+            // If current insturciton is "11111111111111111111111111111111", then break;
+            if (curIns == 0xffffffff) break;
+            // decode(Read RF)
+            opcode = bitset<6>(curIns.to_string().substr(26, 6));
+            switch (opcode.to_ulong()) {
+                case 0x00: {
+                    //R-type
+                    rs = bitset<5>(curIns.to_string().substr(21, 5));
+                    rt = bitset<5>(curIns.to_string().substr(16, 5));
+                    rd = bitset<5>(curIns.to_string().substr(11, 5));
+                    shamt = bitset<5>(curIns.to_string().substr(6, 5));
+                    funct = bitset<6>(curIns.to_string().substr(0, 6));
 
-    					myRF.ReadWrite(rs,rt,rd,bitset<32>(0x0),0);
-    					myALU.ALUOperation(bitset<3>(funct.to_string().substr(0,3)),myRF.ReadData1,myRF.ReadData2);
-    					break;
-    				case 0x09,0x04,0x23,0x2B:
-    					//I-type
-    					rs=bitset<5> curIns.to_string().substr(21,5);
-    					rt=bitset<5> curIns.to_string().substr(16,5);
-    					immediate=bitset<16> curIns.to_string().substr(0,16);
+                    myRF.ReadWrite(rs, rt, rd, bitset<32>(0x0), 0);
+                    myALU.ALUOperation(bitset<3>(funct.to_string().substr(0, 3)), myRF.ReadData1, myRF.ReadData2);
+                }
+                    break;
+                case 0x09:
+                case 0x04:
+                case 0x23:
+                case 0x2B: {
+                    //I-type
+                    rs = bitset<5>(curIns.to_string().substr(21, 5));
+                    rt = bitset<5>(curIns.to_string().substr(16, 5));
+                    immediate = bitset<16>(curIns.to_string().substr(0, 16));
 
-    					myRF.ReadWrite(rs,rt,bitset<5>(0x0),bitset<32>(0x0),0);
-    					switch(opcode){
-    						case 0x09:
-    						//addiu
-    							bitset<32> rsvalue=myRF.ReadData1;
-    							rsvalue=bitset<32>(rsvalue.to_ulong()+immediate.to_ulong());
-    							myRF.ReadWrite(rs,rt,rt,rsvalue,1);
-    							break;
-    						case 0x04:
-    						//beq
-    							if(myRF.ReadData1==myRF.ReadData2){
-    								//immediate=immediate*4
-    								bitset<32> immediate_final;
-    								immediate=immediate<<2;
-    								//signed extension of immediate
-    								if(immediate[17]==1){
-    									bitset<14> immediate_extend=0xFFFFFF;
-    									immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    									}
-    								else {
-    									bitset<14> immediate_extend=0x0;
-    									immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    								}
-    								PC=bitset<32>(PC.to_ulong()+immediate_final.to_ulong()+4);//not sure +4 or +8 !!!
-    							}
-    							break;
-    						case 0x23:
-    						//lw
-    							//signed extension of the offset
-    							bitset<32> immediate_final;
-    							if(immediate[15]==1) {
-    								bitset<16> immediate_extend=0xFFFF;
-    								immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    							}else{
-    								bitset<16> immediate_extend=0x0;
-    								immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    							}
-    							bitset<32> loadAddr=bitset<32>(myRF.ReadData1.to_ulong()+immediate_final.to_ulong());
+                    myRF.ReadWrite(rs, rt, bitset<5>(0x0), bitset<32>(0x0), 0);
+                    switch (opcode.to_ulong()) {
+                        case 0x09: {
+                            //addiu
+                            bitset<32> rsvalue = myRF.ReadData1;
+                            rsvalue = bitset<32>(rsvalue.to_ulong() + immediate.to_ulong());
+                            myRF.ReadWrite(rs, rt, rt, rsvalue, 1);
+                        }
+                            break;
 
-    							myDataMem.MemoryAccess(loadAddr,bitset<32>(0),1,0);//memory access
+                        case 0x04: {
+                            //beq
+                            if (myRF.ReadData1 == myRF.ReadData2) {
+                                //immediate=immediate*4
 
-    							myRF.ReadWrite(rs,rt,rt,myDataMem.readdata,1);//write back
-    							break;
-    						case 0x2B:
-    						//sw
-    							//signed extension of the offset
-    							bitset<32> immediate_final;
-    							if(immediate[15]==1) {
-    								bitset<16> immediate_extend=0xFFFF;
-    								immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    							}else{
-    								bitset<16> immediate_extend=0x0;
-    								immediate_final=bitset<32>(immediate.to_string()+immediate_extend.to_string());
-    							}
-    							bitset<32> storeAddr=bitset<32>(myRF.ReadData1.to_ulong()+immediate_final.to_ulong());
+                                immediate = immediate << 2;
+                                //signed extension of immediate
+                                if (immediate[17] == 1) {
+                                    bitset<14> immediate_extend = 0xFFFFFF;
+                                    immediate_final = bitset<32>(
+                                            immediate.to_string() + immediate_extend.to_string());
+                                } else {
+                                    bitset<14> immediate_extend = 0x0;
+                                    immediate_final = bitset<32>(
+                                            immediate.to_string() + immediate_extend.to_string());
+                                }
+                                PC = bitset<32>(
+                                        PC.to_ulong() + immediate_final.to_ulong() + 4);//not sure +4 or +8 !!!
+                            }
+                        }
+                            break;
+                        case 0x23: {
+                            //lw
+                            //signed extension of the offset
 
-    							myDataMem.MemoryAccess(storeAddr,myRF.ReadData2,0,1);//memory access
+                            if (immediate[15] == 1) {
+                                bitset<16> immediate_extend = 0xFFFF;
+                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                            } else {
+                                bitset<16> immediate_extend = 0x0;
+                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                            }
+                            bitset<32> loadAddr = bitset<32>(
+                                    myRF.ReadData1.to_ulong() + immediate_final.to_ulong());
 
-    							                                     //write back?
+                            myDataMem.MemoryAccess(loadAddr, bitset<32>(0), 1, 0);//memory access
 
-    							break;
-    					}break;
-    				case 0x02:
-    					//J-type
-    					//j
-    					address=bitset<26> curIns.to_string().substr(0,26);
-    					PC=bitset<32>(PC.to_ulong()&0xf0000000|(address.to_ulong<<2))
-    					break;
-    			}
+                            myRF.ReadWrite(rs, rt, rt, myDataMem.readdata, 1);//write back
+                        }
+                            break;
+                        case 0x2B: {
+                            //sw
+                            //signed extension of the offset
+
+                            if (immediate[15] == 1) {
+                                bitset<16> immediate_extend = 0xFFFF;
+                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                            } else {
+                                bitset<16> immediate_extend = 0x0;
+                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                            }
+                            bitset<32> storeAddr = bitset<32>(
+                                    myRF.ReadData1.to_ulong() + immediate_final.to_ulong());
+
+                            myDataMem.MemoryAccess(storeAddr, myRF.ReadData2, 0, 1);//memory access
+
+                            //write back?
+                        }
+                            break;
+                    }
+                }
+                    break;
+                case 0x02: {
+                    //J-type
+                    //j
+                    address = bitset<26>(curIns.to_string().substr(0, 26));
+                    PC = bitset<32>(PC.to_ulong() & 0xf0000000 | (address.to_ulong() << 2));
+                }
+                    break;
+            }
 
 
-        myRF.OutputRF(); // dump RF;
-    }
+            myRF.OutputRF(); // dump RF;
+        }
         myDataMem.OutputDataMem(); // dump data mem
 
         return 0;
 
+    }
 }
