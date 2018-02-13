@@ -250,20 +250,16 @@ int main() {
                         case 0x04: {
                             //beq
                             if (myRF.ReadData1 == myRF.ReadData2) {
-                                //immediate=immediate*4
                                 immediate = immediate << 2;
+				int signedoffset=0;
                                 //signed extension of immediate
                                 if (immediate[17] == 1) {
-                                    bitset<14> immediate_extend = 0xFFFFFF;
-                                    immediate_final = bitset<32>(
-                                            immediate_extend.to_string()+immediate.to_string());
+                                	signedoffset=-bitset<17>(immediate.to_string().substr(1,17)).to_ulong();
                                 } else {
-                                    bitset<14> immediate_extend = 0x0;
-                                    immediate_final = bitset<32>(
-                                            immediate_extend.to_string()+immediate.to_string());
+                                	signedoffset=bitset<17>(immediate.to_string().substr(1,17)).to_ulong();
                                 }
-                                PC = bitset<32>(
-                                        PC.to_ulong() + immediate_final.to_ulong() + 4);//not sure +4 or +8 !!!
+                               PC = bitset<32>(
+                                        PC.to_ulong()-4 + signedoffset);
                             }
                         }
                             break;
@@ -312,7 +308,7 @@ int main() {
                     //J-type
                     //j
                     address = bitset<26>(curIns.to_string().substr(6, 26));
-                    PC = bitset<32>(PC.to_ulong() & 0xf0000000 | (address.to_ulong() << 2));
+                    PC = bitset<32>((PC.to_ulong()-4) & 0xf0000000 | (address.to_ulong() << 2));
                 }
                     break;
             }
