@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/Dibundu/Documents/ComputerArchitecture-CSCI/cache-sim-v001/cachesimulator.cpp
+iostream
+-
+fstream
+-
+string
+-
+sstream
+-
+vector
+-
+iomanip
+-
+stdlib.h
+-
+cmath
+-
+bitset
+-
+math.h
+-
+string.h
+-
+

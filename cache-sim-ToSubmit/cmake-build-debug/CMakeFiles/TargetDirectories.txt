@@ -1,0 +1,3 @@
+C:/Users/Dibundu/Documents/ComputerArchitecture-CSCI/cache-sim-v001/cmake-build-debug/CMakeFiles/cache_sim_v001.dir
+C:/Users/Dibundu/Documents/ComputerArchitecture-CSCI/cache-sim-v001/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Dibundu/Documents/ComputerArchitecture-CSCI/cache-sim-v001/cmake-build-debug/CMakeFiles/rebuild_cache.dir
