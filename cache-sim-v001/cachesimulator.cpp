@@ -54,8 +54,8 @@ private:
     int type;
     int setSize;
     int setCount;
-    int* ptrs;
-    int** mapping;
+    int* ptrs; // index for eviction
+    int** mapping; // mapping table
     int s, b, t;
 public:
 
@@ -67,7 +67,6 @@ public:
         else type = 1; // directed mapped and set associativity
         this->setSize = setSize;
         setCount = ((size * 1024) / setSize) / blockSize;
-        std::cout << "Count" << setCount << '\n';
         s = log2(setCount);
         b = log2(blockSize);
         t = 32 - s - b;
@@ -80,9 +79,7 @@ public:
         }
     }
 
-    //mapping[setCOunt][setSize]
-
-
+    //set l2 for l1 to handle non-inclusive situation
     void setNextLevel(Cache* l2) {
         next = l2;
     }
@@ -90,25 +87,20 @@ public:
     bool read(bitset<32> address) {
 
         int tag = (bitset<32>((address.to_string().substr(0, t))).to_ulong());
-
         int index = (bitset<32>((address.to_string().substr(t, s))).to_ulong());
-
         int offset = (bitset<32>((address.to_string().substr(s + t, b))).to_ulong());
-        cout << "cal success!" << endl;
         cout << tag << " tag success"<< endl;
         cout << index << " index success"<< endl;
 
         for (int i = 0; i < setSize; i++) {
-            cout << i << " line success"<< endl;
-
 
             if (mapping[index][i] == tag) {
-
+                //if it is l1, return true directly
 
                 if (level == 1) {
                     return true;
                 } else {
-                    // if l2 cache, clean the block, because l1, l2 are non-inclusive
+                    // if l2 cache, l1 is updated, clean the block, because l1 and l2 are non-inclusive,
                     mapping[index][i] = -1;
                     return true;
                 }
@@ -116,9 +108,10 @@ public:
         }
         cout << "miss success!" << endl;
 
-        //if l1 cache, storge the value
+        //if l1 cache, store the value
         if (level == 1) {
             bool isFilled = true;
+            //first fill the empty
             for (size_t i = 0; i < setSize; i++) {
                 if (mapping[index][i] == -1) {
                     mapping[index][i] = tag;
@@ -126,6 +119,7 @@ public:
                     break;
                 }
             }
+            //if it is already full, use index for eviction
             if (isFilled == true) {
                 if (ptrs[index] < setCount) {
                     mapping[index][ptrs[index]] = tag;
@@ -134,6 +128,7 @@ public:
                     mapping[index][0] = tag;
                     ptrs[index] = 1;
                 }
+                //call l2 to add the block which throws by l1
                 next->add(address);
             }
         }
@@ -145,11 +140,10 @@ public:
 
     bool write(bitset<32> address) {
         int tag = (bitset<32>((address.to_string().substr(0, t))).to_ulong());
-
         int index = (bitset<32>((address.to_string().substr(t, s))).to_ulong());
-
         int offset = (bitset<32>((address.to_string().substr(s + t, b))).to_ulong());
         for (size_t i = 0; i < setSize; i++) {
+            //no further action because it is write back and not allocating
             if (mapping[index][i] == tag) {
                 return true;
             }
@@ -160,11 +154,11 @@ public:
     //handle non-inclusive situation for l2
     void add(bitset<32> address) {
         int tag = (bitset<32>((address.to_string().substr(0, t))).to_ulong());
-
         int index = (bitset<32>((address.to_string().substr(t, s))).to_ulong());
-
         int offset = (bitset<32>((address.to_string().substr(s + t, b))).to_ulong());
+
         bool isFilled = true;
+        //first fill the empty
         for (size_t i = 0; i < setSize; i++) {
             if (mapping[index][i] == -1) {
                 mapping[index][i] = tag;
@@ -172,6 +166,7 @@ public:
                 break;
             }
         }
+        //if it is already full, use index to eviction
         if (isFilled == true) {
             if (ptrs[index] < setCount) {
                 mapping[index][ptrs[index]] = tag;
@@ -203,7 +198,7 @@ int main(int argc, char* argv[]){
     }
 
     // Implement by you:
-    // initialize the hirearch cache system with those configs
+    // initialize the hierarchy cache system with those configs
     // probably you may define a Cache class for L1 and L2, or any data structure you like
     Cache* l1 = new Cache(1, cacheconfig.L1blocksize, cacheconfig.L1setsize, cacheconfig.L1size);
     Cache* l2 = new Cache(2, cacheconfig.L2blocksize, cacheconfig.L2setsize, cacheconfig.L2size);
