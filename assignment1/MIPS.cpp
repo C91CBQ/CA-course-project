@@ -148,10 +148,10 @@ class DataMem
               if(readmem.to_ulong())
                   readdata=bitset<32>(DMem[Address.to_ulong()].to_string()+DMem[Address.to_ulong()+1].to_string()+DMem[Address.to_ulong()+2].to_string()+DMem[Address.to_ulong()+3].to_string());
               if(writemem.to_ulong()){
-                  DMem[Address.to_ulong()]=bitset<8>(WriteData.to_string().substr(24,8));
-                  DMem[Address.to_ulong()+1]=bitset<8>(WriteData.to_string().substr(16,8));
-                  DMem[Address.to_ulong()+2]=bitset<8>(WriteData.to_string().substr(8,8));
-                  DMem[Address.to_ulong()+3]=bitset<8>(WriteData.to_string().substr(0,8));
+                  DMem[Address.to_ulong()]=bitset<8>(WriteData.to_string().substr(0,8));
+                  DMem[Address.to_ulong()+1]=bitset<8>(WriteData.to_string().substr(8,8));
+                  DMem[Address.to_ulong()+2]=bitset<8>(WriteData.to_string().substr(16,8));
+                  DMem[Address.to_ulong()+3]=bitset<8>(WriteData.to_string().substr(24,8));
                  }
                  return readdata;
           }
@@ -186,7 +186,6 @@ int main() {
     INSMem myInsMem;
     DataMem myDataMem;
 
-    while (1) {
         bitset<32> curIns = 0xff;
         bitset<32> PC = 0x0;
 
@@ -209,21 +208,24 @@ int main() {
             // Fetch
             curIns = myInsMem.ReadMemory(PC);
             PC = bitset<32>(PC.to_ulong() + 4);
+			cout<<"PC:"<<PC.to_ulong()<<endl;
             // If current insturciton is "11111111111111111111111111111111", then break;
             if (curIns == 0xffffffff) break;
             // decode(Read RF)
-            opcode = bitset<6>(curIns.to_string().substr(26, 6));
+            opcode = bitset<6>(curIns.to_string().substr(0, 6));
+
+			cout<<"opcode: "<<opcode<<endl;
             switch (opcode.to_ulong()) {
                 case 0x00: {
                     //R-type
-                    rs = bitset<5>(curIns.to_string().substr(21, 5));
-                    rt = bitset<5>(curIns.to_string().substr(16, 5));
-                    rd = bitset<5>(curIns.to_string().substr(11, 5));
-                    shamt = bitset<5>(curIns.to_string().substr(6, 5));
-                    funct = bitset<6>(curIns.to_string().substr(0, 6));
-
+                    rs = bitset<5>(curIns.to_string().substr(6, 5));
+                    rt = bitset<5>(curIns.to_string().substr(11, 5));
+                    rd = bitset<5>(curIns.to_string().substr(16, 5));
+                    shamt = bitset<5>(curIns.to_string().substr(21, 5));
+                    funct = bitset<6>(curIns.to_string().substr(26, 6));
                     myRF.ReadWrite(rs, rt, rd, bitset<32>(0x0), 0);
-                    myALU.ALUOperation(bitset<3>(funct.to_string().substr(0, 3)), myRF.ReadData1, myRF.ReadData2);
+                    myALU.ALUOperation(bitset<3>(funct.to_string().substr(3, 3)), myRF.ReadData1, myRF.ReadData2);
+                    myRF.ReadWrite(rs, rt, rd, myALU.ALUresult, 1);
                 }
                     break;
                 case 0x09:
@@ -231,9 +233,9 @@ int main() {
                 case 0x23:
                 case 0x2B: {
                     //I-type
-                    rs = bitset<5>(curIns.to_string().substr(21, 5));
-                    rt = bitset<5>(curIns.to_string().substr(16, 5));
-                    immediate = bitset<16>(curIns.to_string().substr(0, 16));
+                    rs = bitset<5>(curIns.to_string().substr(6, 5));
+                    rt = bitset<5>(curIns.to_string().substr(11, 5));
+                    immediate = bitset<16>(curIns.to_string().substr(16, 16));
 
                     myRF.ReadWrite(rs, rt, bitset<5>(0x0), bitset<32>(0x0), 0);
                     switch (opcode.to_ulong()) {
@@ -248,21 +250,16 @@ int main() {
                         case 0x04: {
                             //beq
                             if (myRF.ReadData1 == myRF.ReadData2) {
-                                //immediate=immediate*4
-
                                 immediate = immediate << 2;
+				int signedoffset=0;
                                 //signed extension of immediate
                                 if (immediate[17] == 1) {
-                                    bitset<14> immediate_extend = 0xFFFFFF;
-                                    immediate_final = bitset<32>(
-                                            immediate.to_string() + immediate_extend.to_string());
+                                	signedoffset=-bitset<17>(immediate.to_string().substr(1,17)).to_ulong();
                                 } else {
-                                    bitset<14> immediate_extend = 0x0;
-                                    immediate_final = bitset<32>(
-                                            immediate.to_string() + immediate_extend.to_string());
+                                	signedoffset=bitset<17>(immediate.to_string().substr(1,17)).to_ulong();
                                 }
-                                PC = bitset<32>(
-                                        PC.to_ulong() + immediate_final.to_ulong() + 4);//not sure +4 or +8 !!!
+                               PC = bitset<32>(
+                                        PC.to_ulong()-4 + signedoffset);
                             }
                         }
                             break;
@@ -272,10 +269,10 @@ int main() {
 
                             if (immediate[15] == 1) {
                                 bitset<16> immediate_extend = 0xFFFF;
-                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                                immediate_final = bitset<32>(immediate_extend.to_string()+immediate.to_string());
                             } else {
                                 bitset<16> immediate_extend = 0x0;
-                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                                immediate_final = bitset<32>(immediate_extend.to_string()+immediate.to_string());
                             }
                             bitset<32> loadAddr = bitset<32>(
                                     myRF.ReadData1.to_ulong() + immediate_final.to_ulong());
@@ -291,17 +288,17 @@ int main() {
 
                             if (immediate[15] == 1) {
                                 bitset<16> immediate_extend = 0xFFFF;
-                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                                immediate_final = bitset<32>(immediate_extend.to_string()+immediate.to_string() );
                             } else {
                                 bitset<16> immediate_extend = 0x0;
-                                immediate_final = bitset<32>(immediate.to_string() + immediate_extend.to_string());
+                                immediate_final = bitset<32>(immediate_extend.to_string()+immediate.to_string());
                             }
                             bitset<32> storeAddr = bitset<32>(
                                     myRF.ReadData1.to_ulong() + immediate_final.to_ulong());
 
+                            //cout<<"Store  Address:  "<<storeAddr<<endl;
                             myDataMem.MemoryAccess(storeAddr, myRF.ReadData2, 0, 1);//memory access
 
-                            //write back?
                         }
                             break;
                     }
@@ -310,18 +307,16 @@ int main() {
                 case 0x02: {
                     //J-type
                     //j
-                    address = bitset<26>(curIns.to_string().substr(0, 26));
-                    PC = bitset<32>(PC.to_ulong() & 0xf0000000 | (address.to_ulong() << 2));
+                    address = bitset<26>(curIns.to_string().substr(6, 26));
+                    PC = bitset<32>((PC.to_ulong()-4) & 0xf0000000 | (address.to_ulong() << 2));
                 }
                     break;
             }
-
-
             myRF.OutputRF(); // dump RF;
         }
         myDataMem.OutputDataMem(); // dump data mem
 
         return 0;
 
-    }
+    
 }
